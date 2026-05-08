@@ -8,3 +8,5 @@ venv/
 data/raw/
 data/parsed/
 *.log
+analysis/sessions.csv
+analysis/sets.csv

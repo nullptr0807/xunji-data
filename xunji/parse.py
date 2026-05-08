@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any
 
 
-_EXERCISE_HEAD = re.compile(r"^\d+\.")  # "1.引体向上"
+_EXERCISE_HEAD = re.compile(r"^\d+\.\D")  # "1.引体向上" not "17.5kg"
 _SET = re.compile(r"^\d+组$")            # "1组"
 _KG = re.compile(r"^([\d.]+)kg$")
 _REPS = re.compile(r"^(\d+)次$")
@@ -56,12 +56,17 @@ def parse_record(text: str) -> dict[str, Any]:
                 rec["end_iso"] = datetime.fromtimestamp(end_ms / 1000).isoformat()
             continue
         if tok.startswith("calorie:"):
-            rec["calorie"] = int(tok.split(":", 1)[1])
+            v = tok.split(":", 1)[1].strip()
+            if v:
+                try:
+                    rec["calorie"] = int(float(v))
+                except ValueError:
+                    rec["calorie_raw"] = v
             continue
 
         # 新动作 "1.引体向上"
         if _EXERCISE_HEAD.match(tok):
-            current_ex = {"name": _EXERCISE_HEAD.sub("", tok), "sets": []}
+            current_ex = {"name": re.sub(r"^\d+\.", "", tok), "sets": []}
             exercises.append(current_ex)
             current_set = None
             continue

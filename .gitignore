@@ -5,8 +5,38 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Raw / parsed personal training data (PII)
 data/raw/
 data/parsed/
 *.log
+
+# Personal training feedback (subjective data, PII)
+feedback/
+
+# Backup of in-progress drafts
+*.bak.*
+zhihu_article.md.bak.*
+
+# Generated CSVs (regenerate from data)
 analysis/sessions.csv
 analysis/sets.csv
+
+# Heavy generated artifacts (regenerate via scripts/)
+analysis/out/
+analysis/deep/
+analysis/deep_report/
+analysis/img/
+analysis/__pycache__/
+
+# Standalone PNGs at analysis/ root (regenerate via analyze.py)
+analysis/calendar.png
+analysis/overview.png
+analysis/pr_progression.png
+analysis/top_exercises.png
+
+# Personal source screenshots — only the cropped/published versions are tracked
+analysis/article_img/*.pic.jpg
+analysis/article_img/*.cropped.jpg
+analysis/article_img/05_telegram_rpe.jpg
+analysis/article_img/00_loop_overview.svg

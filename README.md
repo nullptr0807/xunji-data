@@ -57,11 +57,43 @@ python -m xunji.upsert --row \
 ```
 xunji-data/
 ├── xunji/
-│   ├── fetch.py     # 抓取 + 限流处理
-│   ├── parse.py     # 解析 res 文本 (id/train_time/locals)
-│   └── client.py    # HTTP 客户端
+│   ├── fetch.py          # 抓取 + 限流处理
+│   ├── bulk_fetch.py     # 区间批量抓取（自动 sleep 95s）
+│   ├── parse.py          # 解析 res 文本 (id/train_time/locals)
+│   ├── upsert.py         # 写入计划
+│   ├── muscle_groups.py  # 92 个动作 → 肌群分类器
+│   └── client.py         # HTTP 客户端
+├── analysis/             # 5 年数据分析脚本
+│   ├── analyze.py
+│   ├── article_charts.py # 文章里的杂志风图（米白底 4 色哑光）
+│   ├── build_dataset.py  # parsed JSON → set-level DataFrame
+│   ├── REPORT.md         # 自动生成的诊断报告样例
+│   └── article_img/      # 文章配图
+├── scripts/
+│   ├── deep_stats.py     # 全量统计 → JSON
+│   ├── deep_charts.py    # 10 张深度图
+│   └── gen_flow_overview.py
 ├── data/
-│   ├── raw/         # 原始 API 响应
-│   └── parsed/      # 解析后 JSON
-└── notebooks/       # 分析
+│   ├── raw/              # 原始 API 响应（gitignore，PII）
+│   └── parsed/           # 解析后 JSON（gitignore，PII）
+└── zhihu_article.md      # 知乎文章原稿
+```
+
+## 文章
+
+完整故事写在 [`zhihu_article.md`](./zhihu_article.md)：用 5 年训记数据 + Apple Watch + AI 给自己搭训前-训中-训后的反馈闭环，找出平台期真因，做训中实时校准和训后量化复盘。
+
+## 复刻数据流
+
+```bash
+# 1. 抓 5 年历史
+python -m xunji.bulk_fetch --start 2021-08-01 --end 2026-05-08
+
+# 2. flatten 成 set-level
+python analysis/build_dataset.py
+
+# 3. 跑深度统计 + 图表
+python scripts/deep_stats.py
+python scripts/deep_charts.py
+python analysis/article_charts.py
 ```

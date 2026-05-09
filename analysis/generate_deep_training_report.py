@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from scipy import stats
 
-ROOT = Path.home() / "xunji-data"
+ROOT = Path(__file__).resolve().parent.parent
 PARSED = ROOT / "data" / "parsed"
 OUT = ROOT / "analysis" / "deep_report"
 IMG = OUT / "img"
@@ -83,8 +83,8 @@ LIFT_CN = {
     "bench": "杠铃卧推", "incline_bench": "上斜杠铃卧推", "squat": "深蹲", "deadlift": "硬拉",
     "ohp": "站姿杠铃推举", "row": "杠铃划船", "curl": "杠铃弯举",
 }
-BODYWEIGHT_KG = 67.0
-HEIGHT_CM = 173.0
+BODYWEIGHT_KG = float(os.environ.get("BODYWEIGHT_KG", 70.0))
+HEIGHT_CM = float(os.environ.get("HEIGHT_CM", 175.0))
 
 
 def epley(weight: float, reps: float) -> float:
@@ -798,7 +798,7 @@ def generate_report(sets: pd.DataFrame, sessions: pd.DataFrame, eff: pd.DataFram
     <div class='meta'>
     生成时间：{pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}<br>
     数据源：本地 <code>{PARSED}</code>，未调用 API，未写回训记。<br>
-    个人参数：男，中国人，173cm，67kg，BMI {bmi:.1f}。力量比值以 67kg 体重估算。<br>
+    个人参数：{HEIGHT_CM:.0f}cm，{BODYWEIGHT_KG:.0f}kg，BMI {bmi:.1f}。力量比值以 {BODYWEIGHT_KG:.0f}kg 体重估算。<br>
     方法：Python 负责客观统计、清洗、可视化；文字部分按证据链进行解释，不把启发式分类当作事实本身。
     </div>
 
@@ -836,7 +836,7 @@ def generate_report(sets: pd.DataFrame, sessions: pd.DataFrame, eff: pd.DataFram
     <h3>平台期和突破点</h3>
     <ul>{''.join(breakthrough_blocks)}</ul>
     <p><b>解读：</b>卧推、深蹲、硬拉、站姿推举都显示出“早期快速进步 → 中期阶梯式突破 → 近期平台”的典型自然训练曲线。平台期本身不是失败，它说明原来的刺激已经从“新手适应”进入“需要更精细变量管理”的阶段。最值得注意的是：如果一个动作长期有大量出现次数但 PR 不再移动，通常不是意志问题，而是至少一个变量卡住：专项强度分布、弱点肌群、恢复、动作技术、或周期化不足。</p>
-    <p><b>体重相对力量：</b>按 67kg 估算，你的卧推 e1RM/体重、深蹲 e1RM/体重、硬拉 e1RM/体重都已经不是零基础水平；但腿部训练频率与组数不足会限制后续整体体型和下肢比例。身材目标下，腿臀不是可选项。</p>
+    <p><b>体重相对力量：</b>按 {BODYWEIGHT_KG:.0f}kg 估算，你的卧推 e1RM/体重、深蹲 e1RM/体重、硬拉 e1RM/体重都已经不是零基础水平；但腿部训练频率与组数不足会限制后续整体体型和下肢比例。身材目标下，腿臀不是可选项。</p>
 
     <h2>4. 运动模式：三分化、四分化、五分化，以及动作探索</h2>
     <img src='{charts.get('split_year','')}'><br>
@@ -901,7 +901,7 @@ def generate_report(sets: pd.DataFrame, sessions: pd.DataFrame, eff: pd.DataFram
       <li>关键组记录 RIR/RPE；平台期分析最缺这个。</li>
       <li>记录动作变式和技术备注，例如卧推停顿/触胸/握距，深蹲深度，硬拉传统/相扑。</li>
       <li>照片或围度：胸围、腰围、臀围、大腿、上臂，每月一次。否则“身材更好”只能通过代理指标推断。</li>
-      <li>饮食蛋白和总热量：173cm/67kg 若目标增肌，训练数据之外的能量盈余是关键约束。</li>
+      <li>饮食蛋白和总热量：{HEIGHT_CM:.0f}cm/{BODYWEIGHT_KG:.0f}kg 若目标增肌，训练数据之外的能量盈余是关键约束。</li>
     </ol>
 
     <div class='note small'>报告文件：{OUT / 'report.html'}<br>指标 JSON：{OUT / 'metrics.json'}<br>图表目录：{IMG}</div>

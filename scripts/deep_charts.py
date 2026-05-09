@@ -13,7 +13,7 @@ for f in ['Noto Sans CJK SC','Noto Sans CJK JP','WenQuanYi Zen Hei','SimHei']:
     except: pass
 plt.rcParams['axes.unicode_minus']=False
 
-ROOT = Path(os.path.expanduser('~/xunji-data'))
+ROOT = Path(__file__).resolve().parent.parent
 DEEP = ROOT/'analysis'/'deep'
 df = pd.read_parquet(DEEP/'sessions.parquet')
 sdf = pd.read_parquet(DEEP/'sets.parquet')

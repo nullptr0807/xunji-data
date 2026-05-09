@@ -18,7 +18,7 @@ for f in ['Noto Sans CJK SC','Noto Sans CJK JP','WenQuanYi Zen Hei','SimHei','Ar
         pass
 plt.rcParams['axes.unicode_minus'] = False
 
-ROOT = Path(os.path.expanduser('~/xunji-data'))
+ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT/'analysis'
 OUT.mkdir(exist_ok=True)
 

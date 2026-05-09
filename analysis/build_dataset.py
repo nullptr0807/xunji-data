@@ -3,8 +3,9 @@ import json, glob, os, re
 import pandas as pd
 from datetime import datetime
 
-PARSED = os.path.expanduser("~/xunji-data/data/parsed")
-OUT = os.path.expanduser("~/xunji-data/analysis/out")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PARSED = os.path.join(ROOT, "data", "parsed")
+OUT = os.path.join(ROOT, "analysis", "out")
 os.makedirs(OUT, exist_ok=True)
 
 # --- muscle-group classifier (heuristic, based on Chinese exercise names) ---

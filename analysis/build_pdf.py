@@ -2,7 +2,7 @@
 import os, re, base64, markdown
 from weasyprint import HTML, CSS
 
-ROOT = os.path.expanduser("~/xunji-data/analysis")
+ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "analysis")
 IMG = f"{ROOT}/img"
 OUT = f"{ROOT}/out"
 

@@ -1,99 +1,216 @@
 # 训记 (Xunji) 数据分析
 
-抓取并分析 [训记 App](https://trains.xunjiapp.cn) 的训练 / 身体 / 饮食数据。
+抓取并分析 [训记 App](https://trains.xunjiapp.cn) 的训练 / 身体 / 饮食数据，把 5 年训练记录变成可量化诊断、计划生成、训后复盘的反馈闭环。
 
-## 接口
+完整故事：[`zhihu_article.md`](./zhihu_article.md) — 用 5 年训记数据 + Apple Watch + AI 给自己搭训前 → 训中 → 训后的反馈闭环，找出平台期真因，做训中实时校准和训后量化复盘。
 
-- `POST https://trains.xunjiapp.cn/api_trains_for_llm`
-- 鉴权: `Authorization: Bearer <APIKEY>` (也可 body/query 传 `apikey`)
-- Body: `{"datestr": "YYYY-MM-DD"}`
-- 返回: `{"success": true, "res": [...]}`，gzip 压缩
-- 限流: **同一日期 90 秒内只算一次**，过快返回 `too frequent, retry after Ns`
+> ⚠️ **关于数据隐私**：本仓库**不包含任何个人训练数据**。`data/raw/` 和 `data/parsed/` 都在 `.gitignore` 里。文章和 `analysis/article_img/` 里的图表是作者自己脱敏后展示的内容。你跑这套脚本得到的是**你自己**的报告。
 
-## 用法
+---
+
+## 快速开始
 
 ```bash
-cp .env.example .env  # 填入 XUNJI_API_KEY
+# 1. clone + 装依赖
+git clone https://github.com/nullptr0807/xunji-data
+cd xunji-data
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
-# 抓单天
-python -m xunji.fetch --date 2026-05-07
+# 2. 配置 API Key
+cp .env.example .env
+# 编辑 .env，填入 XUNJI_API_KEY=xjllm_xxxx
+#（开通训记 VIP 后，App「我的 → LLM 接口」可以查到）
 
-# 抓区间（自动 sleep 应对限流）
-python -m xunji.fetch --start 2026-01-01 --end 2026-05-08
+# 3. 验证：抓今天
+python -m xunji.fetch --date $(date +%F)
+
+# 4. 抓全部历史（按你训练首日开始）
+python -m xunji.bulk_fetch --start 2021-08-01 --end $(date +%F)
+# 由于 90 秒/日期限流，5 年数据大约要跑 14-15 小时；建议挂 nohup
+
+# 5. 生成诊断报告
+python analysis/build_dataset.py        # 生成 sets.csv + sessions.csv
+python scripts/deep_stats.py             # 全量统计 → JSON
+python scripts/deep_charts.py            # 10 张深度图
+python analysis/generate_deep_training_report.py  # 完整 HTML 报告
+
+# 6. （可选）写训练计划回训记 App
+python -m xunji.upsert --row "2026-06-01,推日,1.卧推,1组,60kg,10次"
 ```
 
-数据落到 `data/raw/YYYY-MM-DD.json`（原始）+ `data/parsed/YYYY-MM-DD.json`（解析后）。
+---
 
-## 写入 (upsert)
+## API 参考
 
-`POST /api_upsert_trains_for_llm` — 把训练行写回训记。同一日期最多 12 条，每行 ≤1500 字符。
+### 抓取 `POST /api_trains_for_llm`
+
+| 字段 | 值 |
+|---|---|
+| 鉴权 | `Authorization: Bearer xjllm_...`（或 body/query `apikey`）|
+| Body | `{"datestr": "YYYY-MM-DD"}` |
+| 返回 | `{"success": true, "res": [...]}`，gzip 压缩 |
+| 限流 | 同一日期 90 秒内只算一次，过快返回 `too frequent, retry after Ns` |
+| 权限 | 仅训记 VIP |
+
+**已知限制**（决定了分析能做到的精度）：
+
+| 限制 | 影响 |
+|---|---|
+| 不返回 RPE / RIR | 主观强度得自己另存 |
+| 不支持身体数据（体重、围度、体脂） | 长期容量 vs 体重相关性做不了 |
+| 不支持饮食数据 | 蛋白/热量进不来 |
+| 不支持动作备注 | App 里写的「肩膀紧」「换装备了」读不到 |
+| 心率仅 avg HR | 分钟级 HR 拿不到（虽然 App 已从 Watch 同步）|
+| 写入 `time:Ts` 不是真实组间 | 是「计划组间」，App 不会用它 override 计时器 |
+
+### 写入 `POST /api_upsert_trains_for_llm`
 
 ```bash
-# 从 JSON 文件 (内容: ["row1", "row2", ...])
-python -m xunji.upsert --file rows.json
-
-# 直接传一条 (休息日)
+# 单条
 python -m xunji.upsert --row "2026-04-02,休息日"
+python -m xunji.upsert --row "2026-04-02,胸部训练,1.卧推,1组,60kg,10次,2组,60kg,8次"
 
-# 力量动作
-python -m xunji.upsert --row \
-  "2026-04-02,胸部训练,1.卧推,1组,60kg,10次,2组,60kg,8次"
+# 带 id = 更新，不带 = 新建
+python -m xunji.upsert --row "2026-04-02,id:1778154285558,胸背,1.引体向上,1组,0kg,10次"
 
-# 带 id 是更新, 不带 id 是新建
-python -m xunji.upsert --row \
-  "2026-04-02,id:1778154285558,胸背,1.引体向上,1组,0kg,10次"
+# 从 JSON 文件批量
+python -m xunji.upsert --file rows.json   # 文件内容: ["row1", "row2", ...]
 ```
 
-行格式：
-- `YYYY-MM-DD[,id:LOCALID],标题[,train_time:start-end][,备注],动作组...`
+**行格式**：
+
+```
+YYYY-MM-DD[,id:LOCALID],标题[,train_time:start-end][,备注],动作组...
+```
+
 - 力量: `1.动作名,1组,Wkg,R次[,time:Ts]`
 - 有氧: `2.跑步,5km,300kcal,time:1800s,140bpm`
-- 休息日: `YYYY-MM-DD,休息日`
-- **upsert 不会删除当天未出现的旧记录**
+- 休息: `YYYY-MM-DD,休息日`
 
-## 目录
+**写入限制**：
+
+| 项 | 限制 |
+|---|---|
+| 标题字符 | 拒绝半角 `[ ]`，必须用全角 `【】` |
+| 单日条数 | ≤ 12 条 |
+| 单条长度 | ≤ 1500 字符 |
+| 限流 | 同一 (日期, 端点) 90 秒锁定，bulk 必须 `sleep 95` |
+| 不删除 | upsert 不会删除当天未出现的旧记录，要替换得显式带 `id:LOCALID` |
+
+---
+
+## 目录结构
 
 ```
 xunji-data/
-├── xunji/
-│   ├── fetch.py          # 抓取 + 限流处理
-│   ├── bulk_fetch.py     # 区间批量抓取（自动 sleep 95s）
-│   ├── parse.py          # 解析 res 文本 (id/train_time/locals)
-│   ├── upsert.py         # 写入计划
-│   ├── muscle_groups.py  # 92 个动作 → 肌群分类器
-│   └── client.py         # HTTP 客户端
-├── analysis/             # 5 年数据分析脚本
-│   ├── analyze.py
-│   ├── article_charts.py # 文章里的杂志风图（米白底 4 色哑光）
-│   ├── build_dataset.py  # parsed JSON → set-level DataFrame
-│   ├── REPORT.md         # 自动生成的诊断报告样例
-│   └── article_img/      # 文章配图
-├── scripts/
-│   ├── deep_stats.py     # 全量统计 → JSON
-│   ├── deep_charts.py    # 10 张深度图
-│   └── gen_flow_overview.py
-├── data/
-│   ├── raw/              # 原始 API 响应（gitignore，PII）
-│   └── parsed/           # 解析后 JSON（gitignore，PII）
-└── zhihu_article.md      # 知乎文章原稿
+├── xunji/                          # API 客户端
+│   ├── client.py                   #   底层 HTTP + 限流处理
+│   ├── fetch.py                    #   单天抓取   (python -m xunji.fetch --date YYYY-MM-DD)
+│   ├── bulk_fetch.py               #   区间抓取   (python -m xunji.bulk_fetch --start ... --end ...)
+│   ├── parse.py                    #   res 文本 → 结构化 (动作/组数/重量/次数/休息/HR)
+│   ├── upsert.py                   #   写入计划   (python -m xunji.upsert --row "...")
+│   └── muscle_groups.py            #   92 个动作 → 肌群分类器（chest/back/quads/...）
+│
+├── analysis/                       # 数据分析 + 图表
+│   ├── build_dataset.py            #   parsed JSON → sets.csv + sessions.csv（set-level DataFrame）
+│   ├── analyze.py                  #   基础统计 + 几张概览图
+│   ├── article_charts.py           #   杂志风图（米白底 4 色哑光，文章用）
+│   ├── generate_deep_training_report.py   # 一键出 HTML 深度报告
+│   ├── embed_report_images.py      #   报告 HTML 里的 <img> 转 base64 内嵌
+│   ├── build_pdf.py                #   HTML → PDF + 长图（需 weasyprint）
+│   └── article_img/                #   文章里引用的 8 张图（脱敏过）
+│
+├── scripts/                        # 独立的统计 + 图表脚本
+│   ├── deep_stats.py               #   全量统计 → analysis/deep/deep_stats.json
+│   ├── deep_charts.py              #   10 张深度图（月度趋势、PR、肌群分布、...）
+│   ├── gen_flow_overview.py        #   生成文章导航图
+│   └── analyze.py                  #   等价于 analysis/analyze.py
+│
+├── data/                           # 你的训练数据（gitignore）
+│   ├── raw/YYYY-MM-DD.json         #   API 原始响应
+│   └── parsed/YYYY-MM-DD.json      #   parse.py 输出的结构化版
+│
+├── .env.example                    # 环境变量模板（XUNJI_API_KEY / BODYWEIGHT_KG / HEIGHT_CM）
+├── requirements.txt                # Python 依赖
+├── zhihu_article.md                # 知乎文章原稿
+└── README.md
 ```
 
-## 文章
+---
 
-完整故事写在 [`zhihu_article.md`](./zhihu_article.md)：用 5 年训记数据 + Apple Watch + AI 给自己搭训前-训中-训后的反馈闭环，找出平台期真因，做训中实时校准和训后量化复盘。
+## 跑通分析的最小路径
 
-## 复刻数据流
+假设你已经填了 `.env` 并抓完数据：
 
 ```bash
-# 1. 抓 5 年历史
-python -m xunji.bulk_fetch --start 2021-08-01 --end 2026-05-08
-
-# 2. flatten 成 set-level
+# 必须先跑：把 parsed JSON flatten 成 CSV
 python analysis/build_dataset.py
 
-# 3. 跑深度统计 + 图表
-python scripts/deep_stats.py
-python scripts/deep_charts.py
-python analysis/article_charts.py
+# 然后任选其一
+python analysis/analyze.py                          # 概览图（频率/容量/PR）
+python scripts/deep_stats.py                        # → analysis/deep/deep_stats.json
+python scripts/deep_charts.py                       # → analysis/deep/*.png（10 张）
+python analysis/generate_deep_training_report.py    # → analysis/deep_report/report.html
 ```
+
+`analysis/article_charts.py` 是作者文章里那几张杂志风的图，会读 `data/parsed/`。
+
+---
+
+## 配置项
+
+`.env`：
+
+| 变量 | 必填 | 默认 | 说明 |
+|---|---|---|---|
+| `XUNJI_API_KEY` | ✅ | — | 训记 LLM 接口 key（VIP 才有） |
+| `BODYWEIGHT_KG` | 否 | 70 | 用于相对力量估算（e1RM/体重）|
+| `HEIGHT_CM` | 否 | 175 | 用于 BMI 计算 |
+
+---
+
+## 文章里提到的反馈闭环
+
+```
+训记 5 年数据
+      │
+      ▼
+  诊断报告 ──── 找进步点
+      │
+      ▼
+  新训练计划 ── 写回训记 App
+      │
+      ▼
+  执行训练（训记 + Watch 同时记录）
+      │
+      ▼
+  训后三源复盘
+      │
+      ├─→ 风险信号 → 下次必做规则
+      ├─→ 主观-客观一致性 → 校准 RPE 信号
+      ├─→ e1RM 对比 → 周期推进决策
+      └─→ "下次需验证项" → 进入下一次训前 briefing
+              │
+              └────────────► 回到执行训练
+```
+
+本仓库覆盖：① 数据抓取（`xunji/`）② 诊断报告（`analysis/`、`scripts/`）③ 计划写回（`xunji/upsert.py`）。
+
+文章里训中/训后那部分用的是作者自己搭的 Hermes Bot + Apple Watch OCR，不在本仓库范围（因为强依赖个人 Telegram bot 和 Watch 数据），但**任何能读 set-level CSV + Watch 截图的 LLM 客户端都能复现**——文章第九节给了 30 分钟入门路径（不写代码版）。
+
+---
+
+## 已知坑（踩过的）
+
+- API 返回 `success` 字段不可靠，要看 `res` 是不是数组
+- 每个 (date, endpoint) 90 秒锁死，bulk 必须 sleep 95s
+- 写入标题不能含半角 `[ ]`，要用全角 `【】`
+- `time:Ts` 写入是「计划组间」，不是真实组间——真实组间只能从分钟级 HR 时间戳反推
+- 导出训练日和 App streak 对不上（作者实测：App 显示 639 天，导出 557 天，差 82 天，未排查清）
+
+---
+
+## License
+
+MIT。本仓库不含训记官方代码，不含个人数据。文章 `zhihu_article.md` 版权归作者。

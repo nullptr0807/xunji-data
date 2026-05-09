@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import sys
 
-sys.path.insert(0, os.path.expanduser('~/xunji-data'))
+sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent.parent))
 from xunji.muscle_groups import lookup, MAP
 
 # Chinese font
@@ -22,7 +22,7 @@ for f in ['Noto Sans CJK SC','Noto Sans CJK JP','WenQuanYi Zen Hei','SimHei']:
         pass
 plt.rcParams['axes.unicode_minus'] = False
 
-ROOT = Path(os.path.expanduser('~/xunji-data'))
+ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT/'analysis'/'deep'
 OUT.mkdir(parents=True, exist_ok=True)
 

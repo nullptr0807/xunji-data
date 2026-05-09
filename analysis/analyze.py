@@ -60,8 +60,9 @@ mpl.rcParams.update({
     "savefig.dpi": DPI,
 })
 
-OUT = os.path.expanduser("~/xunji-data/analysis/out")
-IMG = os.path.expanduser("~/xunji-data/analysis/img")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "analysis", "out")
+IMG = os.path.join(ROOT, "analysis", "img")
 os.makedirs(IMG, exist_ok=True)
 # clean previous
 for f in os.listdir(IMG):

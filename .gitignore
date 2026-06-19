@@ -40,3 +40,8 @@ analysis/article_img/*.pic.jpg
 analysis/article_img/*.cropped.jpg
 analysis/article_img/05_telegram_rpe.jpg
 analysis/article_img/00_loop_overview.svg
+
+# Local scratch scripts and one-off real API writers
+scratch/
+local/
+upsert_*.py

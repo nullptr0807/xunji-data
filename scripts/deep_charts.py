@@ -15,8 +15,23 @@ plt.rcParams['axes.unicode_minus']=False
 
 ROOT = Path(__file__).resolve().parent.parent
 DEEP = ROOT/'analysis'/'deep'
-df = pd.read_parquet(DEEP/'sessions.parquet')
-sdf = pd.read_parquet(DEEP/'sets.parquet')
+def read_frame(stem: str) -> pd.DataFrame:
+    errors = []
+    for ext, reader in [("parquet", pd.read_parquet), ("pkl", pd.read_pickle), ("csv", pd.read_csv)]:
+        path = DEEP / f"{stem}.{ext}"
+        if not path.exists():
+            continue
+        try:
+            return reader(path)
+        except ImportError as e:
+            errors.append(f"{path}: {e.__class__.__name__}")
+            continue
+    raise FileNotFoundError(f"missing readable analysis/deep/{stem}.(parquet|pkl|csv); run scripts/deep_stats.py first. errors={errors}")
+
+df = read_frame('sessions')
+sdf = read_frame('sets')
+df['date'] = pd.to_datetime(df['date'])
+sdf['date'] = pd.to_datetime(sdf['date'])
 deep = json.load(open(DEEP/'deep_stats.json'))
 
 # ============= Chart 1: 月度训练频率 + 容量 =============
@@ -30,7 +45,8 @@ ax2 = ax1.twinx()
 ax2.plot(monthly['month_dt'], monthly['volume']/1000, color='#e74c3c', marker='o', ms=3, label='总容量(吨·次)')
 ax2.set_ylabel('总容量 (千 kg·次)', color='#c0392b')
 ax2.tick_params(axis='y', labelcolor='#c0392b')
-ax1.set_title('每月训练频次 + 总容量趋势 (2021-08 → 2026-05)', fontsize=13)
+span = f"{df.date.min().date()} → {df.date.max().date()}"
+ax1.set_title(f'每月训练频次 + 总容量趋势 ({span})', fontsize=13)
 ax1.grid(alpha=.3)
 plt.tight_layout(); plt.savefig(DEEP/'01_monthly_trend.png',dpi=120); plt.close()
 

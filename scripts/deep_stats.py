@@ -246,6 +246,12 @@ print(f"saved deep_stats.json ({(OUT/'deep_stats.json').stat().st_size/1024:.1f}
 print(f"sessions: {len(df)}, sets: {len(sdf)}, exercises: {sdf['exercise'].nunique()}")
 print(f"unknown exercises: {sdf[sdf['primary']=='unknown']['exercise'].unique()}")
 
-# also save dataframes as feather/parquet for the LLM phase
-df.to_parquet(OUT/'sessions.parquet')
-sdf.to_parquet(OUT/'sets.parquet')
+# also save dataframes for the LLM phase. Parquet is optional; pickle is the
+# dependency-free fallback used by deep_charts.py.
+df.to_pickle(OUT/'sessions.pkl')
+sdf.to_pickle(OUT/'sets.pkl')
+try:
+    df.to_parquet(OUT/'sessions.parquet')
+    sdf.to_parquet(OUT/'sets.parquet')
+except ImportError as e:
+    print(f"[warn] parquet skipped: {e.__class__.__name__}. Using PKL fallback.")

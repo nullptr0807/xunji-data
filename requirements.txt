@@ -9,6 +9,10 @@ matplotlib>=3.7
 scipy>=1.10
 Pillow>=10.0
 
+# Optional but recommended: parquet output for faster analysis IO.
+# Code falls back to CSV/PKL if neither pyarrow nor fastparquet is installed.
+pyarrow>=15
+
 # PDF 报告（可选 — 需要系统安装 cairo/pango，apt: libpango-1.0-0 libcairo2）
 # weasyprint>=60
 # markdown>=3.5

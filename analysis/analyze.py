@@ -68,8 +68,23 @@ os.makedirs(IMG, exist_ok=True)
 for f in os.listdir(IMG):
     os.remove(os.path.join(IMG, f))
 
-sets = pd.read_parquet(f"{OUT}/sets.parquet")
-sess = pd.read_parquet(f"{OUT}/sessions.parquet")
+def read_frame(stem: str) -> pd.DataFrame:
+    errors = []
+    for ext, reader in [("parquet", pd.read_parquet), ("pkl", pd.read_pickle), ("csv", pd.read_csv)]:
+        path = f"{OUT}/{stem}.{ext}"
+        if not os.path.exists(path):
+            continue
+        try:
+            return reader(path)
+        except ImportError as e:
+            errors.append(f"{path}: {e.__class__.__name__}")
+            continue
+    raise FileNotFoundError(f"missing readable analysis/out/{stem}.(parquet|pkl|csv); run analysis/build_dataset.py first. errors={errors}")
+
+sets = read_frame("sets")
+sess = read_frame("sessions")
+sets["date"] = pd.to_datetime(sets["date"])
+sess["date"] = pd.to_datetime(sess["date"])
 sets["year_month"] = sets["date"].dt.to_period("M")
 sess["year_month"] = sess["date"].dt.to_period("M")
 sets["year"] = sets["date"].dt.year
@@ -255,7 +270,7 @@ ax[1].set_xlabel("session 数")
 ax[1].grid(axis="y", visible=False)
 # annotation: 腿日仅 N
 leg_n = st.get("腿日", 0)
-ax[1].text(0.5, -0.2, f"⚠ 腿日仅占 {leg_n/total*100:.1f}% — 健康水平应 ≥ 25%",
+ax[1].text(0.5, -0.2, f"腿日仅占 {leg_n/total*100:.1f}% — 健康水平应 ≥ 25%",
            transform=ax[1].transAxes, ha="center", fontsize=10, color=ACCENT_2, fontweight="bold")
 plt.tight_layout(); plt.savefig(f"{IMG}/06_split.png"); plt.close()
 stats_dict["split_counts"] = sess.split_type.value_counts().to_dict()
@@ -377,7 +392,7 @@ for g in groups_ord:
     diffs = diffs[diffs<=21]
     data_box.append(diffs.values)
     labels.append(f"{g}\n中位 {int(diffs.median())} 天")
-bp = ax.boxplot(data_box, labels=labels, patch_artist=True, widths=0.55,
+bp = ax.boxplot(data_box, tick_labels=labels, patch_artist=True, widths=0.55,
                 boxprops=dict(linewidth=1.2, edgecolor=NEUTRAL),
                 medianprops=dict(color=ACCENT_2, linewidth=2.5),
                 whiskerprops=dict(color=NEUTRAL, linewidth=1),

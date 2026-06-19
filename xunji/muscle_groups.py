@@ -1,18 +1,20 @@
 """把每个动作映射到主要肌群 (primary) 和次要肌群 (secondary)。
 肌群标签: chest 胸, back 背, shoulders 肩, biceps 二头, triceps 三头,
-        quads 股四, hams 腘绳, glutes 臀, adductors 内收, abductors 外展,
-        core 核心
+        quads 股四, hams 腘绳, glutes 臀, calves 小腿, cardio 有氧,
+        rehab 康复/热身, core 核心
 """
 
 # (primary_groups, secondary_groups)
 MAP = {
     # ===== 胸 =====
-    "杠铃卧推": (["chest"], ["triceps","shoulders"]),
-    "上斜杠铃卧推": (["chest"], ["triceps","shoulders"]),
+    "杠铃卧推": (["chest"], ["triceps", "shoulders"]),
+    "上斜杠铃卧推": (["chest"], ["triceps", "shoulders"]),
     "下斜杠铃卧推": (["chest"], ["triceps"]),
-    "哑铃卧推": (["chest"], ["triceps","shoulders"]),
-    "上斜哑铃卧推": (["chest"], ["triceps","shoulders"]),
+    "哑铃卧推": (["chest"], ["triceps", "shoulders"]),
+    "上斜哑铃卧推": (["chest"], ["triceps", "shoulders"]),
     "悍马机推胸": (["chest"], ["triceps"]),
+    "Hammer Machine Press": (["chest"], ["triceps"]),
+    "Machine Fly": (["chest"], []),
     "下斜悍马机推胸": (["chest"], ["triceps"]),
     "上斜悍马机": (["chest"], ["triceps"]),
     "器械推胸": (["chest"], ["triceps"]),
@@ -22,14 +24,20 @@ MAP = {
     "绳索夹胸": (["chest"], []),
     "下斜绳索夹胸": (["chest"], []),
     "弹力绳-高位飞鸟": (["chest"], []),
-    "上斜史密斯机卧推": (["chest"], ["triceps","shoulders"]),
+    "上斜史密斯机卧推": (["chest"], ["triceps", "shoulders"]),
 
     # ===== 背 =====
-    "硬拉": (["back","hams","glutes"], ["core"]),
+    "硬拉": (["back", "hams", "glutes"], ["core"]),
+    "常规硬拉": (["back", "hams", "glutes"], ["core"]),
+    "杠铃罗马尼亚硬拉": (["hams", "glutes"], ["back", "core"]),
+    "罗马尼亚硬拉": (["hams", "glutes"], ["back", "core"]),
     "杠铃划船": (["back"], ["biceps"]),
+    "Barbell Row": (["back"], ["biceps"]),
     "哑铃划船": (["back"], ["biceps"]),
     "站姿哑铃划船": (["back"], ["biceps"]),
     "坐姿划船": (["back"], ["biceps"]),
+    "Sit Cable Row": (["back"], ["biceps"]),
+    "sit cable row": (["back"], ["biceps"]),
     "拉杆坐姿划船(窄握)": (["back"], ["biceps"]),
     "器械划船": (["back"], ["biceps"]),
     "器械划船2": (["back"], ["biceps"]),
@@ -41,23 +49,31 @@ MAP = {
     "悍马机正手下拉": (["back"], ["biceps"]),
     "V-bar下拉": (["back"], ["biceps"]),
     "引体向上": (["back"], ["biceps"]),
+    "Weight Pull-Up": (["back"], ["biceps"]),
     "引体向上（辅助）": (["back"], ["biceps"]),
-    "面拉": (["back","shoulders"], []),
+    "面拉": (["shoulders", "back"], []),
+    "Face Pull": (["shoulders", "back"], []),
 
     # ===== 腿 =====
-    "深蹲": (["quads","glutes"], ["hams","core"]),
-    "史密斯机深蹲": (["quads","glutes"], ["hams"]),
-    "哈克机深蹲": (["quads","glutes"], []),
-    "哑铃酒杯深蹲": (["quads","glutes"], []),
-    "腿举": (["quads","glutes"], []),
-    "器械倒蹬": (["quads","glutes"], []),
-    "器械倒蹬(版本2)": (["quads","glutes"], []),
+    "深蹲": (["quads", "glutes"], ["hams", "core"]),
+    "杠铃深蹲": (["quads", "glutes"], ["hams", "core"]),
+    "史密斯机深蹲": (["quads", "glutes"], ["hams"]),
+    "哈克机深蹲": (["quads", "glutes"], []),
+    "哑铃酒杯深蹲": (["quads", "glutes"], []),
+    "腿举": (["quads", "glutes"], []),
+    "器械倒蹬": (["quads", "glutes"], []),
+    "器械倒蹬(版本2)": (["quads", "glutes"], []),
     "坐姿腿屈伸": (["quads"], []),
+    "Leg Extension": (["quads"], []),
     "腿弯举": (["hams"], []),
     "坐姿腿弯举": (["hams"], []),
+    "Leg Curl": (["hams"], []),
     "单边腿弯举（器械）": (["hams"], []),
     "坐姿髋内收": (["adductors"], []),
-    "坐姿髋外展": (["abductors","glutes"], []),
+    "坐姿髋外展": (["abductors", "glutes"], []),
+    "站姿提踵": (["calves"], []),
+    "提踵": (["calves"], []),
+    "Standing Calf Raise": (["calves"], []),
 
     # ===== 肩 =====
     "站姿杠铃推举": (["shoulders"], ["triceps"]),
@@ -68,7 +84,7 @@ MAP = {
     "器械侧平举": (["shoulders"], []),
     "Y字绳索侧平举": (["shoulders"], []),
     "绳索侧平举（单边）": (["shoulders"], []),
-    "半俯身侧平举": (["shoulders"], []),  # rear delt
+    "半俯身侧平举": (["shoulders"], []),
     "肩膀后束哑铃": (["shoulders"], []),
     "杠铃直立划船": (["shoulders"], ["biceps"]),
     "杠铃前平举": (["shoulders"], []),
@@ -85,18 +101,21 @@ MAP = {
     "绳索弯举": (["biceps"], []),
     "直杆绳索弯举": (["biceps"], []),
     "器械弯举": (["biceps"], []),
+    "Machine Curl": (["biceps"], []),
     "牧师凳弯举": (["biceps"], []),
     "集中弯举": (["biceps"], []),
     "Biceps curl": (["biceps"], []),
 
     # ===== 三头 =====
     "绳索臂屈伸": (["triceps"], []),
+    "Straight Hand Pulldown": (["triceps"], []),
     "直杆绳索下压": (["triceps"], []),
     "V-Bar 绳索下压": (["triceps"], []),
     "绳索直臂下压": (["triceps"], []),
     "铁杆直臂下压": (["triceps"], []),
     "双杠臂屈伸": (["triceps"], ["chest"]),
     "双杠臂屈伸（辅助）": (["triceps"], ["chest"]),
+    "Assisted Chest Dip": (["triceps"], ["chest"]),
     "哑铃臂屈伸": (["triceps"], []),
     "哑铃过头臂屈伸": (["triceps"], []),
 
@@ -105,20 +124,51 @@ MAP = {
     "悬挂抬腿": (["core"], []),
     "负重悬挂抬腿": (["core"], []),
     "转体抬腿": (["core"], []),
+    "Hanging Straight Leg Hip Raise": (["core"], []),
+    "Captain's Chair Straight Leg Raise": (["core"], []),
     "负重仰卧起坐": (["core"], []),
     "绳索跪姿卷腹": (["core"], []),
     "器械侧卷腹": (["core"], []),
+    "坐姿器械卷腹": (["core"], []),
+    "Seated Machine Crunch": (["core"], []),
     "上斜卷腹转体": (["core"], []),
     "站姿健腹轮前推": (["core"], []),
 
-    # ===== 噪声 =====
-    "kg": ([], []),  # 解析残留
+    # ===== 有氧 / 康复 =====
+    "划船机": (["cardio"], []),
+    "爬楼梯": (["cardio"], []),
+    "跑步": (["cardio"], []),
+    "椭圆机": (["cardio"], []),
+    "Stair Stepper": (["cardio"], []),
+    "肩袖热身-Pallof Press": (["rehab"], ["core", "shoulders"]),
+    "Pallof Press": (["rehab"], ["core", "shoulders"]),
 }
+
+
+def _norm(name: str) -> str:
+    return name.strip().replace(" / ", "/")
 
 
 def lookup(name: str):
     """返回 (primary_list, secondary_list)。未识别返回 (['unknown'], [])。"""
-    if name in MAP:
-        return MAP[name]
-    # 尝试模糊匹配
+    n = _norm(name)
+    if n in MAP:
+        return MAP[n]
+
+    # Longest-substring fallback for app names with prefixes/suffixes.
+    matches = [(k, v) for k, v in MAP.items() if k and k in n]
+    if matches:
+        return max(matches, key=lambda kv: len(kv[0]))[1]
+
+    low = n.lower()
+    if any(k in low for k in ["curl", "弯举"]):
+        return (["biceps"], [])
+    if n == "kg":
+        return (["rehab"], [])
+    if any(k in low for k in ["row", "划船"]):
+        return (["back"], ["biceps"])
+    if any(k in low for k in ["fly", "夹胸", "飞鸟"]):
+        return (["chest"], [])
+    if any(k in low for k in ["stepper", "stair", "run", "bike", "elliptical", "爬楼", "跑步", "划船机"]):
+        return (["cardio"], [])
     return (["unknown"], [])

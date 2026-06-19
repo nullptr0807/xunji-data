@@ -1,10 +1,10 @@
 # 训记 (Xunji) 数据分析
 
-抓取并分析 [训记 App](https://trains.xunjiapp.cn) 的训练 / 身体 / 饮食数据，把 5 年训练记录变成可量化诊断、计划生成、训后复盘的反馈闭环。
+抓取并分析 [训记 App](https://trains.xunjiapp.cn) 的训练数据，把长期训练记录变成可量化诊断、计划生成、训后复盘的反馈闭环。
 
-完整故事：[`zhihu_article.md`](./zhihu_article.md) — 用 5 年训记数据 + Apple Watch + AI 给自己搭训前 → 训中 → 训后的反馈闭环，找出平台期真因，做训中实时校准和训后量化复盘。
+完整故事：[`zhihu_article.md`](./zhihu_article.md) — 用训记数据 + Apple Watch + AI 搭训前 → 训中 → 训后的反馈闭环。
 
-> ⚠️ **关于数据隐私**：本仓库**不包含任何个人训练数据**。`data/raw/` 和 `data/parsed/` 都在 `.gitignore` 里。文章和 `analysis/article_img/` 里的图表是作者自己脱敏后展示的内容。你跑这套脚本得到的是**你自己**的报告。
+> ⚠️ **关于数据隐私**：本仓库**不包含任何个人训练数据**。`data/raw/`、`data/parsed/`、`feedback/`、`.env` 都在 `.gitignore` 里。文章和 `analysis/article_img/` 的截图/图表发布前仍应人工复核脱敏程度；你跑这套脚本得到的是**你自己**的报告。
 
 ---
 
@@ -27,16 +27,19 @@ python -m xunji.fetch --date $(date +%F)
 
 # 4. 抓全部历史（按你训练首日开始）
 python -m xunji.bulk_fetch --start 2021-08-01 --end $(date +%F)
-# 由于 90 秒/日期限流，5 年数据大约要跑 14-15 小时；建议挂 nohup
+# bulk_fetch 默认按不同日期短间隔抓取；如果服务器表现为全局限流，可加 --gap 95。
+# 修改 parser 后可用 --reparse 只从本地 raw 重建 parsed，不打 API。
 
 # 5. 生成诊断报告
-python analysis/build_dataset.py        # 生成 sets.csv + sessions.csv
-python scripts/deep_stats.py             # 全量统计 → JSON
+python analysis/build_dataset.py        # 生成 analysis/out/{sets,sessions}.{csv,pkl,parquet*}
+python scripts/deep_stats.py             # 全量统计 → JSON + {pkl,parquet*}
 python scripts/deep_charts.py            # 10 张深度图
 python analysis/generate_deep_training_report.py  # 完整 HTML 报告
 
-# 6. （可选）写训练计划回训记 App
+# 6. （可选）写训练计划回训记 App：默认 dry-run，不真实发送
 python -m xunji.upsert --row "2026-06-01,推日,1.卧推,1组,60kg,10次"
+# 真实新建必须显式确认：
+python -m xunji.upsert --send --allow-create --row "2026-06-01,推日,1.卧推,1组,60kg,10次"
 ```
 
 ---
@@ -47,9 +50,9 @@ python -m xunji.upsert --row "2026-06-01,推日,1.卧推,1组,60kg,10次"
 
 | 字段 | 值 |
 |---|---|
-| 鉴权 | `Authorization: Bearer xjllm_...`（或 body/query `apikey`）|
+| 鉴权 | 客户端会在两个 headers、body、query 四处都带同一个 API key |
 | Body | `{"datestr": "YYYY-MM-DD"}` |
-| 返回 | `{"success": true, "res": [...]}`，gzip 压缩 |
+| 返回 | gzip 压缩；以 `res` 类型和 `error` 字段判定，不能只看 `success` |
 | 限流 | 同一日期 90 秒内只算一次，过快返回 `too frequent, retry after Ns` |
 | 权限 | 仅训记 VIP |
 
@@ -92,11 +95,11 @@ YYYY-MM-DD[,id:LOCALID],标题[,train_time:start-end][,备注],动作组...
 
 | 项 | 限制 |
 |---|---|
-| 标题字符 | 拒绝半角 `[ ]`，必须用全角 `【】` |
+| 标题字符 | 半角 `[GPT5.5]` 已实测可用；若服务器报 `title contains unsafe characters`，再改全角 `【】` |
 | 单日条数 | ≤ 12 条 |
 | 单条长度 | ≤ 1500 字符 |
-| 限流 | 同一 (日期, 端点) 90 秒锁定，bulk 必须 `sleep 95` |
-| 不删除 | upsert 不会删除当天未出现的旧记录，要替换得显式带 `id:LOCALID` |
+| 限流 | 同一 (日期, 端点) 90 秒锁定；不同日期 bulk 默认短间隔，保守模式用 `--gap 95` |
+| 无 id 写入 | 无 `id:LOCALID` 会新建记录；CLI 默认 dry-run，真实新建需 `--send --allow-create` |
 
 ---
 
@@ -108,12 +111,12 @@ xunji-data/
 │   ├── client.py                   #   底层 HTTP + 限流处理
 │   ├── fetch.py                    #   单天抓取   (python -m xunji.fetch --date YYYY-MM-DD)
 │   ├── bulk_fetch.py               #   区间抓取   (python -m xunji.bulk_fetch --start ... --end ...)
-│   ├── parse.py                    #   res 文本 → 结构化 (动作/组数/重量/次数/休息/HR)
+│   ├── parse.py                    #   res 文本 → 结构化 (strength/bodyweight/cardio + 口径字段)
 │   ├── upsert.py                   #   写入计划   (python -m xunji.upsert --row "...")
 │   └── muscle_groups.py            #   92 个动作 → 肌群分类器（chest/back/quads/...）
 │
 ├── analysis/                       # 数据分析 + 图表
-│   ├── build_dataset.py            #   parsed JSON → sets.csv + sessions.csv（set-level DataFrame）
+│   ├── build_dataset.py            #   parsed JSON → analysis/out/{sets,sessions}.{csv,pkl,parquet*}
 │   ├── analyze.py                  #   基础统计 + 几张概览图
 │   ├── article_charts.py           #   杂志风图（米白底 4 色哑光，文章用）
 │   ├── generate_deep_training_report.py   # 一键出 HTML 深度报告
@@ -203,9 +206,9 @@ python analysis/generate_deep_training_report.py    # → analysis/deep_report/r
 
 ## 已知坑（踩过的）
 
-- API 返回 `success` 字段不可靠，要看 `res` 是不是数组
-- 每个 (date, endpoint) 90 秒锁死，bulk 必须 sleep 95s
-- 写入标题不能含半角 `[ ]`，要用全角 `【】`
+- API 返回 `success` 字段不可靠，要按 endpoint 分类：fetch 可接受 `res` 为训练列表；upsert `{res:[]}` 是成功；`error` 字段优先判失败
+- 同一 (date, endpoint) 90 秒锁定；bulk 抓不同日期默认短间隔，保守模式用 `--gap 95`
+- 标题半角 `[GPT5.5]` 已实测可用；若服务端报 `title contains unsafe characters` 再兜底全角 `【】`
 - `time:Ts` 写入是「计划组间」，不是真实组间——真实组间只能从分钟级 HR 时间戳反推
 - 导出训练日和 App streak 对不上（作者实测：App 显示 639 天，导出 557 天，差 82 天，未排查清）
 
